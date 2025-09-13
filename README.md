@@ -1,6 +1,6 @@
 # My Fun Composable Ideas 🎨
 
-Welcome to my personal collection of fun and experimental composable ideas for **[mention the technology, e.g., Jetpack Compose]**!
+Welcome to my personal collection of fun and experimental composable ideas!
 
 This is a space where I bring my creative UI concepts to life. Think of it as a digital sketchbook for code, where I explore everything from unique animations to interesting UI components.
 
