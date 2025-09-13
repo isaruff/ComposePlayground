@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,17 +18,25 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -103,9 +112,9 @@ fun <T> AutoScrollCarouselList(
     )
 
     LaunchedEffect(
-        key1 = lazyListState.isScrollInProgress,
+        key1 = Pair(isScrolling, lazyListState.isScrollInProgress),
         key2 = movement,
-        key3 = isScrolling
+        key3 = scrollSpeedPxPerMillis,
     ) {
         if (!isScrolling) return@LaunchedEffect
         var lastTimeNanos: Long
@@ -183,6 +192,13 @@ private fun calculateStartIndex(itemsSize: Int, startIndex: Int = 0): Int {
 private fun AutoScrollCarouselListPreview() {
     val items = remember { (1..10).toList() }
 
+    // Control states
+    var isScrollingEnabled by remember { mutableStateOf(true) }
+    var scrollSpeed by remember { mutableFloatStateOf(AutoScrollCarouselDefaults.DefaultSpeedPxPerMillis) }
+    var firstCarouselMovement by remember { mutableStateOf(Movement.Horizontal.Left) }
+    var secondCarouselDirection by remember { mutableStateOf(Movement.Horizontal.Right) }
+    var thirdCarouselDirection by remember { mutableStateOf(Movement.Vertical.Top) }
+
     fun colorFromIndex(index: Int): Color {
         // Generate RGB values based on index
         val r = (index * 70) % 256
@@ -191,85 +207,294 @@ private fun AutoScrollCarouselListPreview() {
         return Color(r, g, b)
     }
 
-    Column(
+    fun getDirectionText(movement: Movement): String {
+        return when (movement) {
+            Movement.Horizontal.Left -> "←"
+            Movement.Horizontal.Right -> "→"
+            Movement.Vertical.Top -> "↑"
+            Movement.Vertical.Bottom -> "↓"
+        }
+    }
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .systemBarsPadding()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Horizontal Carousel →",
-            style = MaterialTheme.typography.titleMedium
-        )
-        AutoScrollCarouselList(
-            items = items,
-            movement = Movement.Horizontal.Right,
-            itemContent = { index, item ->
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(colorFromIndex(index)),
-                    contentAlignment = Alignment.Center
+        // Global Controls Section
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Item $item",
-                        color = Color.White,
+                        text = "Global Controls",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                }
-            }
-        )
 
-        Text(
-            text = "Horizontal Carousel ←",
-            style = MaterialTheme.typography.titleMedium
-        )
-        AutoScrollCarouselList(
-            items = items,
-            movement = Movement.Horizontal.Left,
-            itemContent = { index, item ->
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(colorFromIndex(index)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Item $item",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        )
+                    // Scrolling Toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Auto Scroll: ${if (isScrollingEnabled) "ON" else "OFF"}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Button(
+                            onClick = { isScrollingEnabled = !isScrollingEnabled },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isScrollingEnabled)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.outline
+                            )
+                        ) {
+                            Text(if (isScrollingEnabled) "Disable" else "Enable")
+                        }
+                    }
 
-        Text(
-            text = "Vertical Carousel ↓",
-            style = MaterialTheme.typography.titleMedium
-        )
-        AutoScrollCarouselList(
-            items = items,
-            movement = Movement.Vertical.Bottom,
-            firstVisibleItemIndex = 0,
-            itemContent = { index, item ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(colorFromIndex(index)),
-                    contentAlignment = Alignment.Center
+                    // Speed Slider
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Scroll Speed",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "${scrollSpeed.toInt()} px/ms",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Slider(
+                            value = scrollSpeed,
+                            onValueChange = { scrollSpeed = it },
+                            valueRange = 0.1f..1f,
+                            steps = 98,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "0.05",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "1f",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // First Carousel
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Item $item",
-                        color = Color.White,
+                        text = "Horizontal Carousel ${getDirectionText(firstCarouselMovement)}",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Button(
+                        onClick = {
+                            firstCarouselMovement = if (firstCarouselMovement == Movement.Horizontal.Left) {
+                                Movement.Horizontal.Right
+                            } else {
+                                Movement.Horizontal.Left
+                            }
+                        }
+                    ) {
+                        Text("Change Direction")
+                    }
+                }
+                AutoScrollCarouselList(
+                    items = items,
+                    movement = firstCarouselMovement,
+                    isScrolling = isScrollingEnabled,
+                    scrollSpeedPxPerMillis = scrollSpeed,
+                    modifier = Modifier.height(120.dp),
+                    itemContent = { index, item ->
+                        Box(
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(colorFromIndex(index)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Item $item",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                )
+            }
+        }
+
+        // Second Carousel
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Horizontal Carousel ${getDirectionText(secondCarouselDirection)}",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Button(
+                        onClick = {
+                            secondCarouselDirection = if (secondCarouselDirection == Movement.Horizontal.Left) {
+                                Movement.Horizontal.Right
+                            } else {
+                                Movement.Horizontal.Left
+                            }
+                        }
+                    ) {
+                        Text("Change Direction")
+                    }
+                }
+                AutoScrollCarouselList(
+                    items = items,
+                    movement = secondCarouselDirection,
+                    isScrolling = isScrollingEnabled,
+                    scrollSpeedPxPerMillis = scrollSpeed,
+                    modifier = Modifier.height(120.dp),
+                    itemContent = { index, item ->
+                        Box(
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(colorFromIndex(index)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Item $item",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                )
+            }
+        }
+
+        // Third Carousel (Vertical)
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Vertical Carousel ${getDirectionText(thirdCarouselDirection)}",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Button(
+                        onClick = {
+                            thirdCarouselDirection = if (thirdCarouselDirection == Movement.Vertical.Top) {
+                                Movement.Vertical.Bottom
+                            } else {
+                                Movement.Vertical.Top
+                            }
+                        }
+                    ) {
+                        Text("Change Direction")
+                    }
+                }
+                AutoScrollCarouselList(
+                    items = items,
+                    movement = thirdCarouselDirection,
+                    isScrolling = isScrollingEnabled,
+                    scrollSpeedPxPerMillis = scrollSpeed,
+                    firstVisibleItemIndex = 0,
+                    modifier = Modifier.height(300.dp), // Fixed height for vertical carousel
+                    itemContent = { index, item ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(colorFromIndex(index)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Item $item",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                )
+            }
+        }
+
+        // Status Information
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "Current Settings",
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "• Auto Scroll: ${if (isScrollingEnabled) "Enabled" else "Disabled"}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "• Speed: ${String.format("%.1f", scrollSpeed)} px/ms",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "• Horizontal 1: ${getDirectionText(firstCarouselMovement)} direction",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "• Horizontal 2: ${getDirectionText(secondCarouselDirection)} direction",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "• Vertical: ${getDirectionText(thirdCarouselDirection)} direction",
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
-        )
+        }
     }
 }
