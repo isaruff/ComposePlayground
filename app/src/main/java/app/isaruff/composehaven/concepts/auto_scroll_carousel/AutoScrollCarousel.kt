@@ -113,8 +113,8 @@ fun <T> AutoScrollCarouselList(
 
     LaunchedEffect(
         key1 = Pair(isScrolling, lazyListState.isScrollInProgress),
+        key3 = Pair(interactionDelayMillis, scrollSpeedPxPerMillis),
         key2 = movement,
-        key3 = scrollSpeedPxPerMillis,
     ) {
         if (!isScrolling) return@LaunchedEffect
         var lastTimeNanos: Long
@@ -321,11 +321,12 @@ private fun AutoScrollCarouselListPreview() {
                     )
                     Button(
                         onClick = {
-                            firstCarouselMovement = if (firstCarouselMovement == Movement.Horizontal.Left) {
-                                Movement.Horizontal.Right
-                            } else {
-                                Movement.Horizontal.Left
-                            }
+                            firstCarouselMovement =
+                                if (firstCarouselMovement == Movement.Horizontal.Left) {
+                                    Movement.Horizontal.Right
+                                } else {
+                                    Movement.Horizontal.Left
+                                }
                         }
                     ) {
                         Text("Change Direction")
@@ -370,11 +371,12 @@ private fun AutoScrollCarouselListPreview() {
                     )
                     Button(
                         onClick = {
-                            secondCarouselDirection = if (secondCarouselDirection == Movement.Horizontal.Left) {
-                                Movement.Horizontal.Right
-                            } else {
-                                Movement.Horizontal.Left
-                            }
+                            secondCarouselDirection =
+                                if (secondCarouselDirection == Movement.Horizontal.Left) {
+                                    Movement.Horizontal.Right
+                                } else {
+                                    Movement.Horizontal.Left
+                                }
                         }
                     ) {
                         Text("Change Direction")
@@ -419,11 +421,12 @@ private fun AutoScrollCarouselListPreview() {
                     )
                     Button(
                         onClick = {
-                            thirdCarouselDirection = if (thirdCarouselDirection == Movement.Vertical.Top) {
-                                Movement.Vertical.Bottom
-                            } else {
-                                Movement.Vertical.Top
-                            }
+                            thirdCarouselDirection =
+                                if (thirdCarouselDirection == Movement.Vertical.Top) {
+                                    Movement.Vertical.Bottom
+                                } else {
+                                    Movement.Vertical.Top
+                                }
                         }
                     ) {
                         Text("Change Direction")
