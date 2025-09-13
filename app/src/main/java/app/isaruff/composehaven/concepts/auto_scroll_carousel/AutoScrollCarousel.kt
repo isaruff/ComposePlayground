@@ -6,12 +6,18 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,7 +26,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -168,62 +177,96 @@ private fun calculateStartIndex(itemsSize: Int, startIndex: Int = 0): Int {
     return midPoint - (midPoint % itemsSize) + startIndex
 }
 
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, showBackground = true)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable
-private fun AutoScrollCarouselListPrev() {
-    val list = remember {
-        (1..100).toList()
+private fun AutoScrollCarouselListPreview() {
+    val items = remember { (1..10).toList() }
+
+    fun colorFromIndex(index: Int): Color {
+        // Generate RGB values based on index
+        val r = (index * 70) % 256
+        val g = (index * 150) % 256
+        val b = (index * 230) % 256
+        return Color(r, g, b)
     }
+
     Column(
-        modifier = Modifier.systemBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
+        Text(
+            text = "Horizontal Carousel →",
+            style = MaterialTheme.typography.titleMedium
+        )
         AutoScrollCarouselList(
-            items = list,
+            items = items,
             movement = Movement.Horizontal.Right,
             itemContent = { index, item ->
                 Box(
-                    Modifier
-                        .size(100.dp)
-                        .background(Color.Yellow),
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(colorFromIndex(index)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Item $item"
+                        text = "Item $item",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
         )
+
+        Text(
+            text = "Horizontal Carousel ←",
+            style = MaterialTheme.typography.titleMedium
+        )
         AutoScrollCarouselList(
-            items = list,
+            items = items,
             movement = Movement.Horizontal.Left,
             itemContent = { index, item ->
                 Box(
-                    Modifier
-                        .size(100.dp)
-                        .background(Color.Blue),
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(colorFromIndex(index)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Item $item"
+                        text = "Item $item",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
         )
+
+        Text(
+            text = "Vertical Carousel ↓",
+            style = MaterialTheme.typography.titleMedium
+        )
         AutoScrollCarouselList(
-            items = list,
-            firstVisibleItemIndex = 0,
+            items = items,
             movement = Movement.Vertical.Bottom,
+            firstVisibleItemIndex = 0,
             itemContent = { index, item ->
                 Box(
-                    Modifier
-                        .size(100.dp)
-                        .background(Color.Red),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(colorFromIndex(index)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Item $item"
+                        text = "Item $item",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

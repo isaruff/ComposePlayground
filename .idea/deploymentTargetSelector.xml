@@ -17,6 +17,9 @@
       <SelectionState runConfigName="AutoScrollCarouselListPrev">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
+      <SelectionState runConfigName="AutoScrollCarouselListPreview">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
     </selectionStates>
   </component>
 </project>
