@@ -14,6 +14,9 @@
       <SelectionState runConfigName="CollapsingToolbarExample (1)">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
+      <SelectionState runConfigName="AutoScrollCarouselListPrev">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
     </selectionStates>
   </component>
 </project>
