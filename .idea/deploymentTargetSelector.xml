@@ -5,19 +5,19 @@
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="CollapsingToolbarExample">
+      <SelectionState runConfigName="AutoDismissHintHighlight">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="CollapsingToolbarExample (1)">
+      <SelectionState runConfigName="HintHighlightExample">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="AutoScrollCarouselListPrev">
+      <SelectionState runConfigName="AAA">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="AutoScrollCarouselListPreview">
+      <SelectionState runConfigName="BruhMomento">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="AutoScrollCarouselListPreview2">
+      <SelectionState runConfigName="HighlightedTooltipPrev">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>
