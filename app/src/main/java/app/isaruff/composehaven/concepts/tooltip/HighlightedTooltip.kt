@@ -16,14 +16,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,7 +41,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -61,7 +58,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
@@ -85,52 +81,34 @@ fun HighlightedTooltip(
     tooltip: @Composable () -> Unit,
     onDismiss: () -> Unit = {}
 ) {
-    var anchorBounds by remember { mutableStateOf<IntRect?>(null) }
-    val systemBarOffsets = systemBarsOffset()
+    var anchorBounds by remember { mutableStateOf(IntRect.Zero) }
     val transition = updateTransition(showTooltip)
     val isVisible = transition.currentState || transition.targetState || transition.isRunning
 
     Box(
         modifier = modifier
+            .systemBarsPadding()
             .onGloballyPositioned { coordinates ->
                 anchorBounds = coordinates.boundsInWindow().roundToIntRect()
             }
     ) {
         content()
-        anchorBounds?.let { anchor ->
-            if (isVisible) {
-                ScrimPopup(
-                    transition = transition,
-                    scrimColor = scrimColor,
-                    anchorBounds = anchor,
-                    cutoutType = cutoutType,
-                    systemBarOffsets = systemBarOffsets,
-                    onDismiss = onDismiss
-                )
-                TooltipPopup(
-                    transition = transition,
-                    anchorBounds = anchor,
-                    onDismiss = onDismiss,
-                    content = tooltip
-                )
-            }
+        if (isVisible) {
+            ScrimPopup(
+                transition = transition,
+                scrimColor = scrimColor,
+                anchorBounds = anchorBounds,
+                cutoutType = cutoutType,
+                onDismiss = onDismiss
+            )
+            TooltipPopup(
+                transition = transition,
+                onDismiss = onDismiss,
+                content = tooltip
+            )
         }
     }
 }
-
-/** Helper to measure system bar offsets in pixels */
-@Composable
-private fun systemBarsOffset(): SystemBarOffsets {
-    val insets = WindowInsets.systemBars
-    val density = LocalDensity.current
-    val paddingValues = insets.asPaddingValues()
-    return SystemBarOffsets(
-        statusBarHeight = with(density) { paddingValues.calculateTopPadding().roundToPx() },
-        navBarHeight = with(density) { paddingValues.calculateBottomPadding().roundToPx() }
-    )
-}
-
-private data class SystemBarOffsets(val statusBarHeight: Int, val navBarHeight: Int)
 
 /** Full-screen scrim with cutout */
 @Composable
@@ -139,7 +117,6 @@ private fun ScrimPopup(
     scrimColor: Color,
     anchorBounds: IntRect,
     cutoutType: CutoutType,
-    systemBarOffsets: SystemBarOffsets,
     onDismiss: () -> Unit
 ) {
     Popup(
@@ -173,14 +150,14 @@ private fun ScrimPopup(
                     shape = animatedScrimShape(
                         fraction = fraction.value,
                         anchorBounds = anchorBounds,
-                        systemBarOffsets = systemBarOffsets,
                         cutoutType = cutoutType
                     )
                 )
                 .clickable(
                     indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { onDismiss() }
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = onDismiss
+                )
         )
     }
 }
@@ -189,7 +166,6 @@ private fun ScrimPopup(
 @Composable
 private fun TooltipPopup(
     transition: Transition<Boolean>,
-    anchorBounds: IntRect,
     onDismiss: () -> Unit,
     content: @Composable () -> Unit
 ) {
@@ -201,7 +177,7 @@ private fun TooltipPopup(
         if (show) 1f else 0f
     }
     Popup(
-        popupPositionProvider = TooltipPositionProvider(anchorBounds),
+        popupPositionProvider = TooltipPositionProvider,
         onDismissRequest = onDismiss,
         content = {
             Box(
@@ -210,9 +186,7 @@ private fun TooltipPopup(
                     translationY = 50 * (1f - fraction)
                 },
                 contentAlignment = Alignment.Center,
-                content = {
-                    content()
-                }
+                content = { content() }
             )
         }
     )
@@ -229,7 +203,7 @@ private object FullScreenPositionProvider : PopupPositionProvider {
 }
 
 /** PopupPositionProvider for tooltip positioning rules */
-private class TooltipPositionProvider(private val anchorBounds: IntRect) : PopupPositionProvider {
+private object TooltipPositionProvider : PopupPositionProvider {
     override fun calculatePosition(
         anchorBounds: IntRect,
         windowSize: IntSize,
@@ -252,8 +226,10 @@ private class TooltipPositionProvider(private val anchorBounds: IntRect) : Popup
         if (y + popupContentSize.height > windowSize.height) {
             y = anchorTop - popupContentSize.height
         }
-
-        return IntOffset(x.coerceAtLeast(0), y.coerceAtLeast(0))
+        return IntOffset(
+            x = x.coerceAtLeast(0),
+            y = y.coerceAtLeast(0)
+        )
     }
 }
 
@@ -261,7 +237,6 @@ private class TooltipPositionProvider(private val anchorBounds: IntRect) : Popup
 private fun animatedScrimShape(
     fraction: Float,
     anchorBounds: IntRect,
-    systemBarOffsets: SystemBarOffsets,
     cutoutType: CutoutType
 ): Shape {
     // Interpolate bounds from center → full rect
@@ -282,9 +257,9 @@ private fun animatedScrimShape(
 
     return scrimCutoutShape(
         cutoutLeft = left,
-        cutoutTop = top - systemBarOffsets.statusBarHeight,
+        cutoutTop = top,
         cutoutRight = right,
-        cutoutBottom = bottom - systemBarOffsets.navBarHeight,
+        cutoutBottom = bottom,
         type = cutoutType
     )
 }
