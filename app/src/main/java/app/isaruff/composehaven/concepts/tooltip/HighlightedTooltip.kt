@@ -8,7 +8,6 @@ import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.updateTransition
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -56,35 +55,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 
 @Composable
 fun HighlightedTooltip(
     showTooltip: Boolean,
     modifier: Modifier = Modifier,
-    scrimColor: Color = Color.Black.copy(0.32f),
+    scrimColor: Color = Color.Black.copy(0.6f),
     cutoutType: CutoutType = CutoutType.RoundedRect(40f),
-    content: @Composable () -> Unit,
+    onDismiss: () -> Unit = {},
     tooltip: @Composable () -> Unit,
-    onDismiss: () -> Unit = {}
+    content: @Composable () -> Unit,
 ) {
     val insets = WindowInsets.safeDrawing.asPaddingValues()
     var anchorBounds by remember { mutableStateOf(IntRect.Zero) }
@@ -116,7 +111,7 @@ fun HighlightedTooltip(
     }
 }
 
-/** Full-screen scrim with cutout */
+/**Scrim background with the Highlighted content cut*/
 @Composable
 private fun ScrimPopup(
     insets: PaddingValues,
@@ -126,6 +121,7 @@ private fun ScrimPopup(
     cutoutType: CutoutType,
     onDismiss: () -> Unit
 ) {
+    val safeAnchorBounds = anchorBounds.safeBounds(insets)
     Popup(
         properties = PopupProperties(
             focusable = false,
@@ -152,15 +148,16 @@ private fun ScrimPopup(
         Box(
             Modifier
                 .fillMaxSize()
-                .background(
-                    color = scrimColorTransition.value,
-                    shape = animatedScrimShape(
-                        insets,
-                        fraction,
-                        anchorBounds,
-                        cutoutType
+                .drawBehind {
+                    val outline = animatedScrimShape(fraction, safeAnchorBounds, cutoutType)
+                        .createOutline(size, layoutDirection, this)
+
+                    drawOutline(
+                        outline = outline,
+                        color = scrimColorTransition.value,
+                        style = Fill
                     )
-                )
+                }
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
@@ -170,7 +167,7 @@ private fun ScrimPopup(
     }
 }
 
-/** Tooltip popup positioned relative to the anchor */
+/**Tooltip content*/
 @Composable
 private fun TooltipPopup(
     transition: Transition<Boolean>,
@@ -200,88 +197,7 @@ private fun TooltipPopup(
     )
 }
 
-/** PopupPositionProvider for full-screen scrim */
-private object FullScreenPositionProvider : PopupPositionProvider {
-    override fun calculatePosition(
-        anchorBounds: IntRect,
-        windowSize: IntSize,
-        layoutDirection: LayoutDirection,
-        popupContentSize: IntSize
-    ) = IntOffset.Zero
-}
-
-/** PopupPositionProvider for tooltip positioning rules */
-private object TooltipPositionProvider : PopupPositionProvider {
-    override fun calculatePosition(
-        anchorBounds: IntRect,
-        windowSize: IntSize,
-        layoutDirection: LayoutDirection,
-        popupContentSize: IntSize
-    ): IntOffset {
-        val anchorCenterX = anchorBounds.left + anchorBounds.width / 2
-        val anchorBottom = anchorBounds.bottom
-        val anchorTop = anchorBounds.top
-
-        // X position (center with fallback)
-        var x = anchorCenterX - popupContentSize.width / 2
-        if (x < 0) x = anchorBounds.left
-        if (x + popupContentSize.width > windowSize.width) {
-            x = anchorBounds.right - popupContentSize.width
-        }
-
-        // Y position (below or above anchor)
-        var y = anchorBottom
-        if (y + popupContentSize.height > windowSize.height) {
-            y = anchorTop - popupContentSize.height
-        }
-        return IntOffset(
-            x = anchorBounds.left,
-            y = anchorBounds.bottom
-        )
-    }
-}
-
-@Composable
-private fun animatedScrimShape(
-    insetsPadding: PaddingValues,
-    fraction: Float,
-    anchorBounds: IntRect,
-    cutoutType: CutoutType
-): Shape {
-    val layoutDirection = LocalLayoutDirection.current
-    val density = LocalDensity.current
-    val topInsetPx = with(density) { insetsPadding.calculateTopPadding().roundToPx() }
-    val leftInsetPx =
-        with(density) { insetsPadding.calculateLeftPadding(layoutDirection).roundToPx() }
-
-    val centerX = anchorBounds.center.x.toFloat()
-    val centerY = anchorBounds.center.y.toFloat()
-
-    val halfWidth = anchorBounds.width / 2f
-    val halfHeight = anchorBounds.height / 2f
-
-    // Grow outward from center
-    val currentHalfWidth = halfWidth * fraction
-    val currentHalfHeight = halfHeight * fraction
-
-    val left = centerX - currentHalfWidth
-    val right = centerX + currentHalfWidth
-    val top = centerY - currentHalfHeight
-    val bottom = centerY + currentHalfHeight
-
-    val animatedBounds = IntRect(
-        left = left.toInt() - leftInsetPx,
-        right = right.toInt() - leftInsetPx,
-        top = top.toInt() - topInsetPx,
-        bottom = bottom.toInt() - topInsetPx
-    )
-
-    return scrimCutoutShape(
-        bounds = animatedBounds,
-        type = cutoutType
-    )
-}
-
+//This is the preview area. Do not focus on here much.
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun HighlightedTooltipFullPreview() {

@@ -17,7 +17,6 @@ fun scrimCutoutShape(
     val fullRect = Path().apply {
         addRect(Rect(0f, 0f, size.width, size.height))
     }
-
     val cutoutPath = Path().apply {
         when (type) {
             is CutoutType.RoundedRect -> {
@@ -51,6 +50,40 @@ fun scrimCutoutShape(
 
     op(fullRect, cutoutPath, PathOperation.Difference)
 }
+
+internal fun animatedScrimShape(
+    progress: Float,
+    anchorBounds: IntRect,
+    cutoutType: CutoutType
+): Shape {
+    val centerX = anchorBounds.center.x.toFloat()
+    val centerY = anchorBounds.center.y.toFloat()
+
+    val halfWidth = anchorBounds.width / 2f
+    val halfHeight = anchorBounds.height / 2f
+
+    // Grow outward from center
+    val currentHalfWidth = halfWidth * progress
+    val currentHalfHeight = halfHeight * progress
+
+    val left = centerX - currentHalfWidth
+    val right = centerX + currentHalfWidth
+    val top = centerY - currentHalfHeight
+    val bottom = centerY + currentHalfHeight
+
+    val animatedBounds = IntRect(
+        left = left.toInt(),
+        right = right.toInt(),
+        top = top.toInt(),
+        bottom = bottom.toInt()
+    )
+
+    return scrimCutoutShape(
+        bounds = animatedBounds,
+        type = cutoutType
+    )
+}
+
 
 sealed interface CutoutType {
     data class RoundedRect(val cornerRadius: Float) : CutoutType
