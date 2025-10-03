@@ -8,7 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import app.isaruff.composehaven.concepts.tooltip.HighlightedTooltipShowcasePreview
+import app.isaruff.composehaven.concepts.tooltip.HighlightedTooltipFullPreview
 import app.isaruff.composehaven.ui.theme.ComposeHavenTheme
 
 class MainActivity : ComponentActivity() {
@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ComposeHavenTheme {
-                HighlightedTooltipShowcasePreview()
+                HighlightedTooltipFullPreview()
             }
         }
     }

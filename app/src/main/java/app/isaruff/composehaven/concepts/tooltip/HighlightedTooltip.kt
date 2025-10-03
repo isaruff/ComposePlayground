@@ -140,7 +140,7 @@ private fun ScrimPopup(
             }
         )
         val scrimColorTransition = transition.animateColor(
-            transitionSpec = { spring(stiffness = Spring.StiffnessMediumLow) },
+            transitionSpec = { spring(stiffness = Spring.StiffnessLow) },
             targetValueByState = { show ->
                 if (show) scrimColor else Color.Transparent
             }
@@ -176,7 +176,7 @@ private fun TooltipPopup(
 ) {
     val fraction by transition.animateFloat(
         transitionSpec = {
-            spring(stiffness = Spring.StiffnessMediumLow)
+            spring(stiffness = Spring.StiffnessLow)
         }
     ) { show ->
         if (show) 1f else 0f
@@ -188,7 +188,7 @@ private fun TooltipPopup(
             Box(
                 modifier = Modifier.graphicsLayer {
                     alpha = fraction
-                    translationY = 50 * (1f - fraction)
+                    translationY = 75 * (1f - fraction)
                 },
                 contentAlignment = Alignment.Center,
                 content = { content() }
