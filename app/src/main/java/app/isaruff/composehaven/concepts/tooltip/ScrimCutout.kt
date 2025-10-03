@@ -7,12 +7,11 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.toRect
 
 fun scrimCutoutShape(
-    cutoutLeft: Float,
-    cutoutTop: Float,
-    cutoutRight: Float,
-    cutoutBottom: Float,
+    bounds: IntRect,
     type: CutoutType
 ): Shape = GenericShape { size, _ ->
     val fullRect = Path().apply {
@@ -24,18 +23,19 @@ fun scrimCutoutShape(
             is CutoutType.RoundedRect -> {
                 addRoundRect(
                     RoundRect(
-                        rect = Rect(cutoutLeft, cutoutTop, cutoutRight, cutoutBottom),
+                        rect = bounds.toRect(),
                         cornerRadius = CornerRadius(type.cornerRadius, type.cornerRadius)
                     )
                 )
             }
+
             is CutoutType.Circle -> {
-                val width = cutoutRight - cutoutLeft
-                val height = cutoutBottom - cutoutTop
+                val width = bounds.right - bounds.left
+                val height = bounds.bottom - bounds.top
                 val diameter = maxOf(width, height)
                 val radius = diameter / 2f
-                val centerX = (cutoutLeft + cutoutRight) / 2f
-                val centerY = (cutoutTop + cutoutBottom) / 2f
+                val centerX = (bounds.left + bounds.right) / 2f
+                val centerY = (bounds.top + bounds.bottom) / 2f
 
                 addOval(
                     Rect(

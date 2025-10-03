@@ -14,20 +14,22 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -48,6 +50,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -58,6 +61,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
@@ -81,13 +86,13 @@ fun HighlightedTooltip(
     tooltip: @Composable () -> Unit,
     onDismiss: () -> Unit = {}
 ) {
+    val insets = WindowInsets.safeDrawing.asPaddingValues()
     var anchorBounds by remember { mutableStateOf(IntRect.Zero) }
     val transition = updateTransition(showTooltip)
     val isVisible = transition.currentState || transition.targetState || transition.isRunning
 
     Box(
         modifier = modifier
-            .systemBarsPadding()
             .onGloballyPositioned { coordinates ->
                 anchorBounds = coordinates.boundsInWindow().roundToIntRect()
             }
@@ -95,6 +100,7 @@ fun HighlightedTooltip(
         content()
         if (isVisible) {
             ScrimPopup(
+                insets = insets,
                 transition = transition,
                 scrimColor = scrimColor,
                 anchorBounds = anchorBounds,
@@ -113,6 +119,7 @@ fun HighlightedTooltip(
 /** Full-screen scrim with cutout */
 @Composable
 private fun ScrimPopup(
+    insets: PaddingValues,
     transition: Transition<Boolean>,
     scrimColor: Color,
     anchorBounds: IntRect,
@@ -128,7 +135,7 @@ private fun ScrimPopup(
         popupPositionProvider = FullScreenPositionProvider,
         onDismissRequest = onDismiss
     ) {
-        val fraction = transition.animateFloat(
+        val fraction by transition.animateFloat(
             transitionSpec = {
                 spring(stiffness = Spring.StiffnessMediumLow)
             },
@@ -148,9 +155,10 @@ private fun ScrimPopup(
                 .background(
                     color = scrimColorTransition.value,
                     shape = animatedScrimShape(
-                        fraction = fraction.value,
-                        anchorBounds = anchorBounds,
-                        cutoutType = cutoutType
+                        insets,
+                        fraction,
+                        anchorBounds,
+                        cutoutType
                     )
                 )
                 .clickable(
@@ -199,7 +207,7 @@ private object FullScreenPositionProvider : PopupPositionProvider {
         windowSize: IntSize,
         layoutDirection: LayoutDirection,
         popupContentSize: IntSize
-    ) = IntOffset(0, 0)
+    ) = IntOffset.Zero
 }
 
 /** PopupPositionProvider for tooltip positioning rules */
@@ -227,19 +235,25 @@ private object TooltipPositionProvider : PopupPositionProvider {
             y = anchorTop - popupContentSize.height
         }
         return IntOffset(
-            x = x.coerceAtLeast(0),
-            y = y.coerceAtLeast(0)
+            x = anchorBounds.left,
+            y = anchorBounds.bottom
         )
     }
 }
 
 @Composable
 private fun animatedScrimShape(
+    insetsPadding: PaddingValues,
     fraction: Float,
     anchorBounds: IntRect,
     cutoutType: CutoutType
 ): Shape {
-    // Interpolate bounds from center → full rect
+    val layoutDirection = LocalLayoutDirection.current
+    val density = LocalDensity.current
+    val topInsetPx = with(density) { insetsPadding.calculateTopPadding().roundToPx() }
+    val leftInsetPx =
+        with(density) { insetsPadding.calculateLeftPadding(layoutDirection).roundToPx() }
+
     val centerX = anchorBounds.center.x.toFloat()
     val centerY = anchorBounds.center.y.toFloat()
 
@@ -255,11 +269,15 @@ private fun animatedScrimShape(
     val top = centerY - currentHalfHeight
     val bottom = centerY + currentHalfHeight
 
+    val animatedBounds = IntRect(
+        left = left.toInt() - leftInsetPx,
+        right = right.toInt() - leftInsetPx,
+        top = top.toInt() - topInsetPx,
+        bottom = bottom.toInt() - topInsetPx
+    )
+
     return scrimCutoutShape(
-        cutoutLeft = left,
-        cutoutTop = top,
-        cutoutRight = right,
-        cutoutBottom = bottom,
+        bounds = animatedBounds,
         type = cutoutType
     )
 }
@@ -267,7 +285,7 @@ private fun animatedScrimShape(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun HighlightedTooltipFullPreview() {
-    var currentStep by remember { mutableStateOf(0) }
+    var currentStep by remember { mutableIntStateOf(0) }
     val totalSteps = 5
 
     MaterialTheme {
@@ -447,8 +465,7 @@ private fun TutorialTooltip(
 ) {
     Card(
         modifier = modifier
-            .widthIn(max = 320.dp)
-            .padding(16.dp),
+            .widthIn(max = 320.dp),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -519,7 +536,7 @@ private fun TutorialTooltip(
                     if (step != totalSteps) {
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
-                            imageVector = Icons.Default.ArrowForward,
+                            imageVector = Icons.Filled.PlayArrow,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
